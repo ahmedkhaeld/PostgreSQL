@@ -214,6 +214,38 @@ SELECT COALESCE(address2, 'No Address') AS address
 FROM customers
 
 
+-- BETWEEN AND
+SELECT <column> 
+FROM <table> 
+WHERE <column> BETWEEN X AND Y
+
+-- FLITERING MULTIPLE VALUES: use IN KEYWORD
+-- CHECK IF A VALUE MATCHES ANY VALUE IN A LIST OF VALUES
+
+-- EXAMPLE: fetch all employess info that matches these numbers
+SELECT * FROM employees
+WHERE emp_no IN (100001, 100006, 11008)
+
+/*
+* DB: Store
+* Table: orders
+* Question: How many orders were made by customer 7888, 1082, 12808, 9623
+*/
+
+SELECT COUNT(orderid)
+FROM orders
+WHERE customerid IN (7888, 1082, 12808, 9623)
+
+
+/*
+* DB: World
+* Table: city
+* Question: How many cities are in the district of Zuid-Holland, Noord-Brabant and Utrecht?
+*/
+
+SELECT COUNT(id)
+FROM city
+WHERE district IN ('Zuid-Holland', 'Noord-Brabant', 'Utrecht');
 
 
 
