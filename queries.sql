@@ -249,6 +249,18 @@ WHERE district IN ('Zuid-Holland', 'Noord-Brabant', 'Utrecht');
 
 
 
+--LIKE: PARTIAL LOOKUP
+-- % any number of character after the searched characters
+-- - one character  after the searched character
 
+--postgres LIKE only does text comparison, so we must cast whatever we use to text            
+-- cast to text 
+CAST(salary AS text);
+salary::text 
+
+--EXAMPLE: GET EVERY EMPLOYEE WHOS NAME STARTS WITH M 
+SELECT first_name FROM employees WHERE first_name LIKE 'M%';
+
+-- ILIKE keyword: case insensitive matching
 
  
