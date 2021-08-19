@@ -161,3 +161,18 @@ INNER JOIN dept_emp AS de ON de.emp_no = e.emp_no
 INNER JOIN departments AS dp ON dp.dept_no = de.dept_no
 
 
+--USING 
+/* 
+simplifying the join syntax
+
+ON de.emp_no=e.emp_no syntax is equal to  USING(emp_no)
+
+so what USING is doing under the hood it is like saying 
+hey, i have this column <emp_no> in thes two tables <dept_emp> and <employees> 
+so compare those two
+
+*/
+SELECT e.emp_no, e.first_name, d.dept_name 
+FROM employees as e 
+INNER JOIN dept_emp AS de USING(emp_no)  
+INNER JOIN departments AS d USING(dep_no);
