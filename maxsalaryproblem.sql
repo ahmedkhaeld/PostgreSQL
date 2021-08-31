@@ -70,3 +70,25 @@ join employees as e using(emp_no)
 join dept_emp as de using(emp_no)
 join departments as d using(dept_no)
 order by emp_no;
+
+--USING VIEWS:
+/* 
+GETTING THE MOST RECENT SALARY OF AN EMPLOYEE
+create view to have a last salary change.
+from here we could make a queries on the view
+*/
+
+CREATE VIEW last_salary_change AS 
+SELECT e.emp_no,
+       max(s.from_date)
+FROM salaries as s  
+join employees as e using(emp_no)
+join dept_emp as de using(emp_no) 
+join departments as d using(dept_no)
+group by e.emp_no  
+order by e.emp_no;
+-------------------------------------------
+select * from salaries
+join last_salary_change as l using(emp_no)
+where from_date=l.max
+order by emp_no;
