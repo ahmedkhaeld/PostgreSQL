@@ -6,7 +6,8 @@
 * HOW TO INSERT/UPDATE/...DATA
 ## TYPES OF DATABASES IN A RDBMS
 
-![Screenshot from 2021-08-31 19-11-12](https://user-images.githubusercontent.com/40498170/131546582-0812e384-4db2-4d0e-972d-3d2ecd5cddc9.png)
+
+ <img src="https://user-images.githubusercontent.com/40498170/131546582-0812e384-4db2-4d0e-972d-3d2ecd5cddc9.png" width="900" height="200"/>
  what exactly is the process that goes behind creating that database?
  Because for everything that is created, there must be a map, a blueprint, some kind of structure behind it that tells it, you know, what am I making?
   what a template database is? So when we look at the types of databases in a database management system and from the management perspective,
@@ -104,6 +105,12 @@ And on top of that, you can give a role, the ability to be a super user or not b
 We're telling a roll, hey, these are some of the attributes that you can have and, you know, by
 giving it the attribute, you're also defining a privilege.<br />
 
+
+switch users to the postgres user: <br />
+` sudo su - postgres` <br />
+Connect with psql <br />
+` postgres@demo:~$ psql -U postgres` <br />
+
 * CREATING ROLE <br />
 `CREATE ROLE readonly WITH LOGIN ENCRYPTED PASSWORD 'readonly;'`<br />
  WHEN CREATING A ROLE,BY DEFAULT ONLY THE CREATOR OF THE DATABASE OR SUPERUSER HAS ACCESS TO ITS OBJECT
@@ -131,6 +138,328 @@ sudo -u postgres psql postgres
 postgres=# ALTER ROLE test_interactive WITH ENCRYPTED PASSWORD 'password';
 
  ```
+
+Drop a role <br />
+` postgres=# DROP ROLE demorole1;` <br />
+
+#### PRIVILEGES
+ATTRIBUTES CAN ONLY DEFINE SO MANY PRIVILEGES!
+WHEN YOU ARE NOT A "SUPERUSER" WHAT YOU CAN DO IS FAIRLY LIMITED, DEPENDING ON WHAT DEFAULT PRIVILES ARE SET <br />
+BY DEFAULT OBJECT ARE ONLY AVAILABLE TO THE ONE WHO CREATES THEM <br />
+THIS MEANS PRIVILESGES NEED TO BE GRANTED FOR NEW ROLES AND USERS TO HAVE ACCESS TO CERTIN DATA <br />
+
+* GRANTING PRIVILES <br />
+```
+GRANT ALL PRIVILES ON <TABLE> TO <USER>
+GRANT ALL ON TABLES [IN SCHEMA <schema>] TO <user>;
+GRANT [SELECT, UPDATE, INSERT,...] ON <table> [IN SCHEMA <schema>] TO <user>;
+```
+
+ ```
+ sudo -u postgres createuser --interactive
+Enter name of role to add: privilegetest
+Shall the new role be a superuser? (y/n) n
+Shall the new role be allowed to create databases? (y/n) n
+Shall the new role be allowed to create more new roles? (y/n) n
+psql -U postgres Employees
+Employees=#  SELECT * FROM titles;
+
+ ```
+ here retrieve all the data from titles <br />
+ but if we did
+ ```
+ psql -U privilegetest Employees
+ Employees=> SELECT * FROM titles;
+ ```
+ ERROR: permisision denied for table titles <br />
+ because here only the owner or superuser has access <br />
+ superuser can grant roles to other users by default, you can create user that can grant other roles as well.<br />
+ 
+ ```
+ psql -U postgres Employees
+ Employees= GRANT SELECT ON titles TO  privilegetest;
+ ```
+ also can revoke <br />
+  ```
+ psql -U postgres Employees
+ Employees= REVOKE SELECT ON titles FROM  privilegetest;
+ ```
+ IF YOU WANT GRANT EVERYTHING <br />
+  ```
+ psql -U postgres Employees
+ Employees= GRANT ALL ON ALL TABLES IN SCHEMA public TO  privilegetest;
+ ```
+ IF YOU WANT REVOKE EVERYTHING <br />
+  ```
+ psql -U postgres Employees
+ Employees= REVOKE ALL ON ALL TABLES IN SCHEMA public FROM  privilegetest;
+ ```
+ CREATE SPECIFIC  ROLE TO READONLY TO USER AND GRANT THIS ROLE 
+   ```
+ psql -U postgres Employees
+ Employees= CREATE ROLE employee_read;
+ Employees= GRANT SELECT ON ALL TABLES IN SCHEMA public TO  employee_read;
+ Employees= GRANT employee_read TO  privilegetest;
+ ```
+ #### BEST PRACTICES
+ WHEN MANAGING ROLES AND PERMISSIONS ALWAYS GO WITH THE "PRINCIPLE OF LEAST PRIVILEGE" <br />
+ says give no privileges at all and then start layering them.Don't start off with super users and then revoke privileges or    not that you could. But don't start with users that have all of the privileges and then remove privileges.
+ No start with no privileges at all and start layering them like a cake.
+ And with that you have total control because when you create new users, they're not allowed to do anything.
+ And then you start giving them access to certain portions and they have to continuously ask for access.
+ You have to be extremely cautious with data. <br />
+ 
+ #### DATA TYPES
+ IS NOTHING MORE THAN A CONSTRAINT PLACE ON A FIELD TO ONLY ALLOW THAT TYPE OF DATA TO BE FILLED IN. IT'S IMPORTANT BECAUSE 
+ IT TELLS THE SYSTEM HOW IT CAN/SHOULD HANDLE THE DATA IN THAT FIELD <br />
+ 
+ * BOOLEAN <br />
+ A BOOLEAN TYPE CAN HOLD TRUE, FALSE, OR NULL <br />
+ it also can convert [1,yes,y,t,true]  to TRUE |  [0,no,f,false] to FALSE. <br />
+ 
+ * CHARACTER <br />
+ POSTGRES PROVIDES THREEE CHARACTER DATA TYPES:  <br />
+ CHAR(N): FIXED LENGTH WITH SPACE PADDING  <br />
+ VARCAHR(N): VARIABLE LENGTH WITH NO PADDING  <br />
+ TEXT: UNLIMITED LENGTH TEXT <br />
+ 
+ * NUMERIC  <br />
+ THERE ARE TWO TYPES OF NUMBERS IN POSTGRES: INTEGERES[SMALLINT,INT,BIGINT] AND FLOATING[FLOAT4, FLOAT8, DECIMAL]  POINTS <br/>
+ 
+ * ARRAYS <br />
+ A GROUP OF ELEMENTS OF THE SAME TYPE. EVERY DATA TYPE IN POSTGRES HAS AN ARRAY EQUIVALENT <br />
+ 
+ ### CREATE DATA
+ ##### DATABASE MODELS
+ ##### WHAT IS A MODEL?
+ A model would help you think ahead up front and not have to make as many changes as you go along.
+ A little bit of thinking ahead will take you away farther.
+ A model is a design that is used to visualize what we are going to build. <br />
+ ##### An Entity Relationship Diagram (ERD)
+ <br/>
+ 
+ <img src="https://user-images.githubusercontent.com/40498170/131753239-7f0f792d-faef-4d67-ae4b-4c89bd598b1c.png" width="500" height="500"/>
+ 
+ that is what is used to create a model, and it denotes entites <br />
+ #### RULES TO FOLLOW IN ORDER TO BUILD A DIAGRAM:
+ * TABLE NAMES MUST BE SINGULAR!
+ * COLUMNS MUST BE LOWERCASE WITH UNDERSCORES
+ * BE CONSISTENT! WRITE DOWN YOU RULES!
+ #### let's create data
+ ```
+CREATE TABLE student( 
+student_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+first_name VARCHAR(255) NOT NULL,
+last_name VARCHAR(255) NOT NULL,
+email TEXT CHECK (email ~* '^[A-Za-z0-9._%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'),
+date_of_birth DATE NOT NULL
+);
+
+ztm=# create extension if not exists "uuid-ossp";
+ztm=# \dt
+
+ ```
+ 
+           List of relations
+           
+ Schema |  Name   | Type  |  Owner   
+:--------:|:---------:|:-------:|:----------:
+ public | student | table | postgres
+ 
+(1 row)
+<br />
+ 
+  ` ztm=# \d student` <br />
+                               Table "public.student" 
+
+ 
+   column      |  type                  | collation | Nullable |  Default
+:--------------------:|:--------------------:|:-----------:|:------------:|:----------:
+ student_id    | uuid                   |           | not null | uuid_generate_v4()
+ first_name    | character varying(255) |           | not null | 
+ last_name     | character varying(255) |           | not null | 
+ email         | character varying(255) |           | not null | 
+ date_of_birth | date                   |           | not null |
+<br />
+Indexes:
+    "student_pkey" PRIMARY KEY, btree (student_id) <br />
+    #### CONSTRAINTS
+    ARE A TOOL TO APPLY VALIDATION METHODS AGAINST DATA THAT WILL BE INSTERTED.<br />
+    ##### COLUMNS CONSTRAINTS
+     
+ <img src="https://user-images.githubusercontent.com/40498170/131769439-72a8dcc7-368d-4fe9-a179-f11bfeab5bc0.png" 
+      width="900" height="500" />
+<br />
+Here are some different constraints that you can apply on a column and the meaning.
+So what do they do?
+
+So when we look at column constraints, we're trying to look at a constraint that will be applied uniquely
+to that specific column, not multiple columns, just that one.
+And so one that we're very, very familiar with and one that we've seen throughout the course.
+Not no, it cannot be null.
+It has to have a value, it cannot be the value, not so that's pretty easy.
+We know all about no values were no professionals.
+
+When we look here, primary key is another one, and we just applied this to the student table and the
+column will be the primary key and that is very important.
+We're saying, hey, this column, this column is going to be the primary.
+Now, when we talked about primary keys, we also talked about primary keys being able to be multiple
+columns.
+Well, when you apply a column constraint, you're not going to be able to do that.
+It is for that column specifically.
+So one column is the primary.
+
+And then we have the unique constraint and what the unique constraint says is it can only contain unique
+values, so you can only have unique values in this column.
+They can't overlap with any other values.
+And NUL is considered unique.
+You can't just fill in anything.
+It has to be a unique value.
+NUL is considered to be unique as well.
+Remember that no null is the same.
+
+
+Well, this one is Check
+So what is it going to check?
+what are we going to do with this one?
+Well, we're applying a special condition to check against.
+So, hey, here, here's a custom check.
+here's a special condition that I want you to check for the values in this column.
+And this could be, for instance, that email validation we spoke about, that phone number validation.
+you want a specific sequence or that you want specific characters to be present
+or whatever else you can fill in a unique special conditions to check against.
+And that is what check is for.
+
+The constraint references what ths references do.
+What does it mean?
+Well, we've talked about primary keys and we've talked about unique, but we're aware, for example.
+Well, that's what references for references to constrain values of a column to only be the values that
+exist in a column in another table.
+Well, that sounds oddly like a foreign guy.
+So what we're seeing here is when you apply the constraint references, you're pointing to a different
+table and a specific column in that table.
+So you're referencing somewhere else and you're saying, hey, anything you fill in here, it has to
+correspond with a value in that column, in that other table.
+
+#### TABLE CONSTRAINTS
+A TABLE CONSTRAINT DEFINITION IS NOT TIED TO A PARTICULAR COLUMN, AND IT CAN ENCOMPASS MORE THAN ONE COLUMN. <br />
+UNIQUE (column_list): can only contain unique values (NULL is unique) <br />
+PRIMARY KEY (column_list): columns that will be the primary key <br />
+CHECK (condition): a condition to check when inserting or updating <br />
+REFERENCES: foreign key relationship to a column <br />
+YOU WRITE THE CONSTRAINTS AT THE BOTTOM <br />
+
+
+```
+CREATE TABLE student( 
+student_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+first_name VARCHAR(255) NOT NULL,
+last_name VARCHAR(255) NOT NULL,
+email VARCHAR(255) NOT NULL,
+date_of_birth DATE NOT NULL,
+CONSTRAINT pk_student_id PRIMARY KEY (student_id)
+);
+```
+#### CUSTOM DATA TYPES
+POSTGRES ALLOWS YOU TO CREATE CUSTOM DATA TYPES TO STORE SHAPES OF DATA THAT ARE MORE COMPLEX <br />
+ztm database -> functions and write this custom data type
+```
+create domain Rating smallint check (value > 0 and value <=5);
+
+create type Feedback as(
+student_id UUID,
+rating Rating,
+feedback TEXT);
+```
+Feedback will be a custom data type that will have a student ID, a rating and feedback, and the rating will be a small integer that can range from one to five. The student ID will be a UID and feedback will be text. <br />
+create a domain and in a domain is just a specific type of data that can have a check. <br />
+A domain is nothing more than an alias for an existing type that can have a check constraint <br />
+
+Use case: create course table and insert data into it (a mini migration scenario) 
+```
+create table course( 
+course_id UUID primary key default uuid_generate_v4(),
+"name" text not null, 
+description text, 
+subject_id UUID references subject(subject_id),
+teacher_id UUID references teacher(teacher_id),
+feedback feedback[]
+
+);
+```
+here insert data into two fields 
+```
+insert into course  (
+"name", 
+description 
+) values ( 
+'DataBase',
+'learn about db management and querying'
+);
+```
+First: subject_id, and teacher_id in course table will have null values for that inserted record <br />
+ we were allowed to create a course, but we didn't have to give it a teacher idea and we didn't have to give it a subject.
+ So when we created our foreign key reference, we didn't actually tell it that it had to enforce it. <br />
+ So it's allowed to be. Well, we don't want that, do we? <br />
+ We want our table to like, you know, we need a teacher, a teacher for sure, has to make a course.And, you know, every course needs a subject. So we're going to do an altar table. <br />
+ the situation here, we a have a record already with less constraints, but when we alter the table constraints, the existing
+ record must be on the same newly constraints. <br/>
+ okay, first do update statement to old record so there is no null fields, then do the constraints alteration. <br />
+ ```
+update course 
+set subject_id='96d40705-36c0-4dbf-977a-961b74f22a28'
+where subject_id is Null;
+```
+```
+update course 
+set teacher_id='c06398c2-b161-4920-a1ca-8545eabf4843'
+where teacher_id is Null;
+```
+now update the foriegn keys constraints <br />
+
+```
+alter table course alter column subject_id set not null;
+alter table course alter column teacher_id set not null;
+```
+after that if we try to insert a data without filling subject_id and teacher_id this will not work <br />
+` 21:04:12 Kernel error: ERROR:  null value in column "subject_id" of relation "course" violates not-null constraint` <br />
+
+##### Adding Feedback to a course
+ ```
+ update course 
+set feedback=array_append(feedback, 
+row(
+'1038a603-526b-45d2-8f56-5746470d06e0',
+5,
+'Great Course'
+)::feedback
+
+)where course_id='ed0fdc40-7849-4c9a-95be-1c7d4f5ec6dd'
+```
+we're going to set feedback and we're going to array append.
+So now that we're working with arrays, we have a feedback array and we have to append to that array.
+And what we're going to do is to the feedback array, the existing array.
+We're going to append the row. <br/>
+This is the syntax you can use to define a custom row of any specific type. <br />
+we have the student ID, we have our score, which is a five, and we have our feedback, which is great course.
+Now that we have this, we're going to cast it to the type feedback and we're going to say, hey, do
+it where the course_id is equal to this id;
+
+----------
+But one of the downfalls of this It's not going to check. If this student I.D. exists, and sure, I'm getting a lot of five stars, but I can't verify from who. <br />
+I have to do an update instead of an insert and I have to update the course information every time.
+I don't want to be updating my course, every time I want to insert feedback somewhere and I want to keep it separate from the course.
+
+
+
+
+
+
+      
+    
+    
+ 
+
 
 
 
