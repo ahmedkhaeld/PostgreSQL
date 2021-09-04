@@ -21,9 +21,12 @@
   1- POSTGRES DATABASE <br />
   THIS IS THE DEFAULT DATABASE THAT IS CREATED WHEN YOU SETUP POSTGRES(INITDB) <br />
   so the first time you initialize postgres you can connect to the postgres database to setup your first database <br />
-  ~ `psql -U <user> <database>` <br />
-  ~ `postgres-# \conninfo` <br />
-  ` You are connected to database "postgres" as user "postgres" via socket in "/temp" at port "5432" ` <br />
+ 
+ ` psql -U <user> <database> `
+  `postgres-# \conninfo` <br />
+  
+  
+  You are connected to database "postgres" as user "postgres" via socket in "/temp" at port "5432"  <br />
   2- TEMPLATE0 DATABASE <br />
   THIS IS THE TEMPLATE THAT IS USED TO CREATE TEMPLATE1- NEVER CHANGE IT! <br />
   IT IS A BACKUP TEMPLATE <br />
@@ -33,6 +36,7 @@
   ONE THING TO NOTE IS THAT BECAUSE TEMPLATE1 IS THE DEFAULT TEMPLATE- IF IT IS BEING ACCESSED/CONNECTED TO, NO NEW DATABASES
   CAN BE CREATED UNTIL THE CONNECTION IS CLOSED! <br />
   `exit` from the session so other one could be connected <br />
+  
    #### SO HOW DO YOU CREATE A DATABASE? 
   this creates a database with all the defaults for you, it will use template1 <br/>
   ` CREATE DATABSE NAME ` <br />
@@ -50,6 +54,7 @@
  ` CREATE DATABASE ztm;`
  #### DATABASE ORGANIZATION
  DATABASES OFTEN CONTAIN MANY TABLES, VIEW, ETS... DEPENDING ON HOW MUCH YOU CARE, YOU MAY WANT TO ORGANIZE THEM IN A LOGICAL WAY!<br />
+ 
  * POSTGRES SCHEMAS <br />
  POSTGRES OFFERS THE CONCEPT OF "SCHEMAS" THINK OF IT LIKE A BOX IN WHICH YOU CAN ORGANIZE TABLES, VIEWS, INDEXES, ETC.
  let's say we were creating a database structure for a company and we had a sales department,a marketing department, all of these other different departments.
@@ -63,18 +68,21 @@
  By default, each database gets a public schema. unless you specify a schema, the default is always going to be assumed public.<br />
  ` SELECT * FROM employess ` <br /> 
  ` SELECT * FROM public.employees ` same as above <br />
+ 
  * SHOW ALL SCHEMAS <br />
  ~ `mydatabase=# \dn` <br />
+ 
  * CREATE A SCHEMA   <br />
   ~ `mydatabase=> CREATE SCHEMA sales;` <br />
+  
   #### REASON TO USE SCHEMAS:
   * to allow many users to use one database without interfering with each other. <br />
   What does that mean? <br />
   because in one schema, you can't have two tables with the exact same name.  <br />
   * to organize database objects into logical groups to make them more manageable. <br />
   * third-party applications can be put into separate schemas so they do not collide with the names of other objects. <br />
-  It's about not interfering with the global data, right? If you separate things into schemas, you can have duplicate names, you can have duplicate named objects
-  that are not necessarily the same because they're in a different logical group. But you're still operating on the same database.<br />
+  It's about not interfering with the global data, right? If you separate things into schemas, you can have duplicate names,     you can have duplicate named objects
+  that are not necessarily the same because they're in a different logical group. But you're still operating on the same     database.<br />
   #### ROLES IN POSTGRES
   WHEN WE TALK ABOUT ROLES, WE TALK ABOUT SECURITY. ROLES ARE VITAL TO ANY DBMS THEY DETERMINE WHAT'S ALLOWED!<br />
   WHEN WE SET UP ROLES, WE'RE BASICALLY SETTING UP FUNCTIONS TO WHICH PEOPLE ARE ALLOWED AND NOT ALLOWED
@@ -449,6 +457,197 @@ it where the course_id is equal to this id;
 But one of the downfalls of this It's not going to check. If this student I.D. exists, and sure, I'm getting a lot of five stars, but I can't verify from who. <br />
 I have to do an update instead of an insert and I have to update the course information every time.
 I don't want to be updating my course, every time I want to insert feedback somewhere and I want to keep it separate from the course.
+. how are we going to change this in order to accommodate feedback from multiple students and to a course? <br />
+we need to change our custom data type into something completely different. We need to shape it into a table. <br />
+And the reason we're going to shape it into the table is because when we use tables, we can follow 
+the relational model. Primary key, foreign key interaction constraints, checks.
+
+<img src= "https://user-images.githubusercontent.com/40498170/131938371-56af003f-a298-4d46-986e-cacc89f977c0.png"  width="900" height="500" />
+what we did was we made it a relationship <br/>
+Each individual feedback can belong to one student, but a student can leave multiple feedback, right?
+So a student can leave multiple feedback and feedback belongs to one course, but a course can have multiple feedback.
+So one individual feedback has to belong to a certain course and a certain student.
+But students in courses can have multiple feedbacks.<br />
+
+```
+create table feedback ( 
+student_id UUID not null references student(student_id),
+course_id UUID not null references course(course_id),
+feedback text, 
+rating rating, 
+constraint pk_feedback PRIMARY key  (student_id, course_id )
+)
+```
+before executing this query, we have to change feedback to feedback_deprecated at Tables>type <br/>
+
+insert data into feedback <br />
+```
+INSERT INTO feedback( 
+student_id, 
+course_id,
+feedback, 
+rating 
+) values ( 
+'1038a603-526b-45d2-8f56-5746470d06e0',
+'76e121e8-00db-4bc6-909b-c526c1c9e9be',
+ 'great great course',
+ 5
+);
+```
+------
+### BACKUPS 
+disaster will strike, you will hit a scenario where something
+unexpected happens, you may not know what it is and it depends very much on the scenario you're working in. <br />
+Are your databases in the cloud? <br />
+Are the on premise? <br />
+Do you have your own hardware? <br />
+when disaster strikes, when unexpected things happen, we need to have a strategy in place. <br />
+How am I going to make the backups? <br />
+What type of backups am I going to make? <br />
+Why am I going to make these backups? <br />
+All of these questions need to be answered. <br />
+
+#### HAVE A PLAN
+1- BACKUP PLAN
+2- DISASTER RECOVERY PLAN
+3- TEST YOUR PLANS
+
+The disaster recovery plan tells you exactly. OK, a database went down.  <br />
+What are we going to do?  <br />
+The applications go into maintenance mode. Everything is basically put to a stop, a halt.  <br />
+And these are the procedures we're going to follow   <br />
+from the first hour, We're going to assess what exactly happened and why it happened.  <br />
+The second hour, we're going to start putting in place the backups in the recovery procedures in place.  <br />
+The third hour, we're going to give a status report.  <br />
+
+#### WHAT CAN GO WRONG?
+1- HARDWARE FAILURES: hard drive Could be five years old, six years old, have a lot of reads and writes just one day i'm done
+2- VIRUSES
+3- POWER OUTAGES: Power outages, short circuiting of components.
+4- HACKERS
+5- HUMAN ERROR
+
+#### HOW DO I MAKE A PLAN
+DETERMINE WHAT NEEDS TO BE BACKED UP <br />
+you may have to back up your operating system because your operating system may have certain options in place. <br />
+
+#### WHAT TO BACKUP 
+1- FULL BACKUP
+2- INCREMENTAL
+3- DIFFERNTIAL
+4- TRANSACTION LOG
+
+Always do a full backup of your database first, always have one for backup. And then from there you can go in the side.
+Well, am I going to do more full backups or what am I going to do from here on out?
+Am I always going to do a full that's a very good strategy.
+you could, hey, let me do an incremental backup. And an incremental backup is basically saying, hey, here's my full backup.
+When you do your very first full backup, when you do an incremental backup, you're doing everything 
+that changed since the last incremental backup. It's everything that changed since the last incremental.
+
+then you have a differential backup, it's always everything that changed since the first full backup.
+
+And then you have transaction log.
+Transaction log is one of those things where on a day to day basis transactions are happening, people
+are committing to the code base changes are happening.
+This is like a live snapshot of what happened that hour, that day that whatever increment you take
+transaction logs at, which should be at a short interval, you want it maybe every 15, half an hour,or every 1 or 2 hours <br/>
+
+#### BACKING UP In Postgres
+[Chapter 25. Backup and Restore](https://www.postgresql.org/docs/12/backup.html) <br/>
+[Reliable PostgreSQL Backup & Restore](https://pgbackrest.org/) <br/>
+
+------
+#### TRANSACTIONS
+At the end of the day, a database is a shared resource. So many, many users will access it concurrently.
+updates, deletes, drops, creates. All of these things affect the state of the database.
+And since the database is shared, well, how do we make sure that when five or six or seven people
+are accessing it, that the database stays consistent? <br />
+
+That's where we look at transactions, transactions are a unit of instructions you see with transactions.
+Basically, what we're trying to achieve is a unit of instructions that is going to run in isolation
+and not affect the state of the database until it's done.
+
+HOW WE WE KEEP THINGS CONSISTENT?
+the DBMS has a mechanism in place to manage transactins <br />
+
+And then it becomes a question of if someone is going to commit those changes, then it becomes a question
+of, well, who's first?<br />
+And that's where the database will get smart and it will lock certain resources while an update is happening
+so that other transactions won't get into a weird state.
+
+<img src="https://user-images.githubusercontent.com/40498170/132083633-d5e51640-fb19-4196-8120-7335eded3b7a.png"  width="1000" height="300" />
+So when we look at the life cycle of a transaction, we see that a transaction will start.So you're running your query, right?
+And that goes into an active state.And so when it goes into an active state, well, then it's going to run itself.
+And so then it's going to execute itself. This is what we call partially committed.
+But if it fails for any reason, well, then it it'll get aborted. 
+So if it fails because something else is utilizing that resource or it just failed because of a query
+misbehave, then it will go into a failed state, it will be aborted and the transaction will automatically be ended.
+
+#### show case between two sessions doing conflict transaction
+
+```
+A                                                             | B
+BEGIN;                                                        | BEGIN;
+DELETE FROM employees WHERE emp_no BETWEEN 10000 AND 10005;   |                                                       
+*  partially commited state for A                             |
+                                                              | DELETE FROM employees WHERE emp_no BETWEEN 10000 AND 10005;
+                                                              | * for B it is hanging,resource is being locked
+ROLLBACK                                                      | * unlcoked now, delete5,because A ended the T by rollingback
+                                                              | END;
+                                                              | * now the T is committed for B
+BEGIN;                                                        |
+DELETE FROM employees WHERE emp_no BETWEEN 10000 AND 10005;   |
+delete 0: this transaction delete nothing                     |
+END;                                                          |
+ 
+```
+ So basically, what it comes down to is in a transaction, when you're in this partially committed state,
+ what you decide to do, whether you decide to commit or abort really determines how other transactions
+ are going to play out.
+ resources get locked while transactions are happening and they are in this partially committed
+ state if you're trying to access or do something to the same resource.
+ 
+ #### TRANSACTIONS PROPERTIES (ACID)
+ * ATOMICITY: EITHER EXECUTE ENTIRELY OR NOT AT ALL
+ * CONSISTENCY: EACH TRANSACTION SHOULD LEAVE THE DATABASE IN A CONSISTENT STATE (COMMIT OR ROLLBACK)
+ * ISOLATION: TRANSACTION SHOULD BE EXECUTED IN ISOLATION FROM OTHER TRANSACTIONS
+ * DURABILITY: AFTER COMPLETION FO A TRANSACTION, THE CHANGES IN THE DATABASE SHOULD PERSIST
+ 
+ The I and acid isolation transactions should be executed in isolation from other transactions. <br/>
+ OK, this is important because when we look at transactions, they can't go and affect each other.
+ They're both basically think of it like them executing in two separate sandboxes.
+ So you start a transaction to start a transaction. they both have access to the same database.<br />
+ But what's actually happening is they've created this little sandbox in which they can play.
+ They can update, delete, insert, select. They can do all of these things within that transaction.
+ And then when they decide, hey, I'm going to commit, well, that's when the database management software
+ kicks in and says, well, this transaction is doing these things. So what you're doing may fail roll back, probably. <br/>
+ 
+ But what we're trying to say here is that transactionA & transaction B started off with the same sandbox.
+ But what happened in Transaction A isn't known to transaction B until time of commit or roll 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+                       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
